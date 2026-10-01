@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediRoute</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%2314212B'/><path d='M6.5 3h3v3.5H13v3H9.5V13h-3V9.5H3v-3h3.5z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14212B;--muted:#586973;--line:#C9D4DA;--mist:#E8EDF0;--sea:#DCE5E9;--crit:#C62828;--ser:#D96B00;--mod:#0F7C8A;--min:#6B7A85}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:14px/1.45 "Public Sans",system-ui,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--mist);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+header{height:52px;display:flex;align-items:center;gap:28px;padding:0 20px;background:var(--ink);color:#fff}
+header h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.2px}
+header .stats{display:flex;gap:22px;color:#B7C5CD;font-size:13px}
+header .stats b{color:#fff;font-weight:600;margin-right:4px}
+header .grow{flex:1}
+.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:4px;padding:7px 14px;font-weight:600;cursor:pointer}
+header .btn{background:#fff;color:var(--ink);border-color:#fff}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.sm{padding:2px 9px;font-weight:500;font-size:13px}
+main{height:calc(100% - 52px);display:grid;grid-template-columns:350px 1fr 320px}
+section{overflow:auto;min-height:0}
+.queue{border-right:1px solid var(--line);background:#F6F8F9}
+.side{border-left:1px solid var(--line);background:#F6F8F9}
+h2{font-size:15px;font-weight:600;margin:0;padding:14px 16px 8px}
+.call{display:grid;grid-template-columns:5px 1fr auto;gap:0 12px;padding:11px 14px 11px 0;border-bottom:1px solid var(--line)}
+.call .bar{grid-row:1/4}
+.call .who{font-weight:600}
+.call .meta{color:var(--muted);font-size:13px}
+.call .plan{grid-column:2/4;font-size:13px;margin-top:3px}
+.call .plan.bad{color:var(--crit);font-weight:500}
+.empty{padding:18px 16px;color:var(--muted)}
+.mapwrap{display:flex;flex-direction:column;min-width:0}
+.mapwrap svg{width:100%;height:auto;display:block;cursor:crosshair;max-height:calc(100% - 60px)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;padding:10px 16px;color:var(--muted);font-size:13px;align-items:center}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.row .name{flex:1;min-width:0}
+.row .sub{color:var(--muted);font-size:13px}
+.off{opacity:.55}
+.sw{position:relative;width:34px;height:20px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;background:#AAB8C0;border-radius:10px;transition:background .15s}
+.sw span::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .15s}
+.sw input:checked+span{background:var(--mod)}
+.sw input:checked+span::after{transform:translateX(14px)}
+.sw input:focus-visible+span,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1E6BD6;outline-offset:2px}
+.log{padding:0 16px 16px;font-size:13px;color:var(--muted)}
+.log div{padding:3px 0}.log b{font-weight:500;color:var(--ink);margin-right:8px}
+dialog{border:0;border-radius:6px;padding:0;width:min(400px,92vw);box-shadow:0 12px 40px rgba(20,33,43,.35)}
+dialog::backdrop{background:rgba(20,33,43,.45)}
+dialog form{padding:20px;display:grid;gap:12px}
+dialog h3{margin:0;font-size:17px}
+label.f{display:grid;gap:4px;font-weight:500}
+label.f input,label.f select{padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:#fff;font-weight:400}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+@media(max-width:1100px){body{height:auto}main{height:auto;grid-template-columns:1fr}section{overflow:visible}.queue,.side{border:0}header .stats{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>MediRoute</h1>
+  <div class="stats" id="stats"></div>
+  <div class="grow"></div>
+  <button class="btn ghost" style="color:#fff;border-color:#4A5B66" onclick="call('reset','POST')">Reset shift</button>
+  <button class="btn" onclick="openDlg()">Add call</button>
+</header>
+<main>
+  <section class="queue"><h2>Calls</h2><div id="calls"></div></section>
+  <section class="mapwrap">
+    <svg id="map" viewBox="0 0 720 480" role="img" aria-label="City map with ambulances, hospitals and calls"></svg>
+    <div class="legend">
+      <span><i style="background:var(--crit)"></i>Critical</span><span><i style="background:var(--ser)"></i>Serious</span>
+      <span><i style="background:var(--mod)"></i>Moderate</span><span><i style="background:var(--min)"></i>Minor</span>
+      <span>Dashed: ambulance to patient</span><span>Solid: patient to hospital</span><span>Click the map to place a call</span>
+    </div>
+  </section>
+  <section class="side">
+    <h2>Ambulances</h2><div id="fleet"></div>
+    <h2>Hospitals</h2><div id="hosp"></div>
+    <h2>Activity</h2><div class="log" id="log"></div>
+  </section>
+</main>
+<dialog id="dlg">
+  <form id="frm">
+    <h3>Add call</h3>
+    <label class="f">Patient name<input name="patient" placeholder="Name or description" autocomplete="off"></label>
+    <div class="two">
+      <label class="f">Condition<select name="kind"><option value="GENERAL">General</option><option value="CARDIAC">Cardiac</option><option value="TRAUMA">Trauma</option><option value="STROKE">Stroke</option><option value="RESPIRATORY">Respiratory</option></select></label>
+      <label class="f">Priority<select name="priority"><option value="CRITICAL">Critical</option><option value="SERIOUS">Serious</option><option value="MODERATE" selected>Moderate</option><option value="MINOR">Minor</option></select></label>
+    </div>
+    <div class="two">
+      <label class="f">Location x (km)<input name="x" type="number" min="0" max="24" step="0.1" value="12"></label>
+      <label class="f">Location y (km)<input name="y" type="number" min="0" max="16" step="0.1" value="8"></label>
+    </div>
+    <div class="actions"><button type="button" class="btn ghost" onclick="dlg.close()">Cancel</button><button class="btn">Add call</button></div>
+  </form>
+</dialog>
+<script>
+const $=s=>document.querySelector(s), S=30;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PC={CRITICAL:'#C62828',SERIOUS:'#D96B00',MODERATE:'#0F7C8A',MINOR:'#6B7A85'};
+const cap=s=>s[0]+s.slice(1).toLowerCase();
+const m1=v=>(+v).toFixed(1);
+let st=null;
+
+async function call(path,method='GET',body){
+  const r=await fetch('/api/'+path,{method,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body?new URLSearchParams(body):undefined});
+  const j=await r.json();
+  if(!r.ok){alert(j.error);return}
+  st=j;render();
+}
+function openDlg(x,y){
+  const f=$('#frm');
+  f.x.value=x??(1+Math.random()*22).toFixed(1); f.y.value=y??(1+Math.random()*14).toFixed(1);
+  f.patient.value='';$('#dlg').showModal();f.patient.focus();
+}
+$('#frm').addEventListener('submit',e=>{e.preventDefault();call('emergencies','POST',Object.fromEntries(new FormData(e.target)));$('#dlg').close()});
+$('#map').addEventListener('click',e=>{
+  const r=e.currentTarget.getBoundingClientRect();
+  openDlg(((e.clientX-r.left)/r.width*24).toFixed(1),((e.clientY-r.top)/r.height*16).toFixed(1));
+});
+
+function render(){
+  const hn=id=>st.hospitals.find(h=>h.id===id).name;
+  const sent=st.emergencies.filter(e=>e.assignment).length, free=st.ambulances.filter(a=>a.available&&!a.busyWith).length;
+  $('#stats').innerHTML=`<span><b>${st.emergencies.length}</b>open calls</span><span><b>${sent}</b>dispatched</span><span><b>${free}</b>ambulances free</span>`;
+
+  $('#calls').innerHTML=st.emergencies.length?st.emergencies.map(e=>{
+    const a=e.assignment;
+    const plan=a?`${a.ambulanceId} arrives in ${m1(a.pickupMin)} min, then ${esc(hn(a.hospitalId))} in ${m1(a.hospitalMin)} min`:esc(e.reason);
+    return `<div class="call"><div class="bar" style="background:${PC[e.priority]}"></div>
+      <div><span class="who">${e.id} ${esc(e.patient)}</span><div class="meta">${cap(e.priority)}, ${e.kind.toLowerCase()}, needs ${e.needs} or better</div></div>
+      <button class="btn ghost sm" onclick="call('emergencies/${e.id}','DELETE')">Resolve</button>
+      <div class="plan ${a?'':'bad'}">${plan}</div></div>`}).join(''):'<div class="empty">No open calls. Add one, or click the map.</div>';
+
+  $('#fleet').innerHTML=st.ambulances.map(a=>`<div class="row ${a.available?'':'off'}">
+    <div class="name"><b>${a.id}</b> ${a.level}<div class="sub">${!a.available?'Out of service':a.busyWith?'Assigned to '+a.busyWith:'Free'}</div></div>
+    <label class="sw" title="In service"><input type="checkbox" ${a.available?'checked':''} onchange="call('ambulances/${a.id}/toggle','POST')"><span></span></label></div>`).join('');
+
+  $('#hosp').innerHTML=st.hospitals.map(h=>`<div class="row ${h.open?'':'off'}">
+    <div class="name"><b>${esc(h.name)}</b><div class="sub">${h.open?`${h.beds-h.incoming} of ${h.beds} beds free`:'Closed to arrivals'}</div></div>
+    <button class="btn ghost sm" aria-label="Fewer beds" onclick="call('hospitals/${h.id}/beds','POST',{n:${h.beds-1}})">-</button>
+    <button class="btn ghost sm" aria-label="More beds" onclick="call('hospitals/${h.id}/beds','POST',{n:${h.beds+1}})">+</button>
+    <label class="sw" title="Accepting patients"><input type="checkbox" ${h.open?'checked':''} onchange="call('hospitals/${h.id}/toggle','POST')"><span></span></label></div>`).join('');
+
+  $('#log').innerHTML=st.log.map(l=>`<div><b>${l.t}</b>${esc(l.msg)}</div>`).join('');
+  drawMap();
+}
+
+function drawMap(){
+  let s=`<rect width="720" height="480" fill="#DCE5E9"/>`;
+  for(let i=1;i<24;i++)s+=`<line x1="${i*S}" y1="0" x2="${i*S}" y2="480" stroke="#fff" stroke-opacity="${i%5?.35:.8}"/>`;
+  for(let i=1;i<16;i++)s+=`<line x1="0" y1="${i*S}" x2="720" y2="${i*S}" stroke="#fff" stroke-opacity="${i%5?.35:.8}"/>`;
+  s+=`<path d="M0 300 C140 250 250 370 400 310 S620 230 720 270" stroke="#BCD2DC" stroke-width="22" fill="none"/>`;
+  const A=Object.fromEntries(st.ambulances.map(a=>[a.id,a])),H=Object.fromEntries(st.hospitals.map(h=>[h.id,h]));
+  st.emergencies.forEach(e=>{const a=e.assignment;if(!a)return;const c=PC[e.priority],am=A[a.ambulanceId],h=H[a.hospitalId];
+    s+=`<line x1="${am.x*S}" y1="${am.y*S}" x2="${e.x*S}" y2="${e.y*S}" stroke="${c}" stroke-width="2" stroke-dasharray="6 5"/>
+        <line x1="${e.x*S}" y1="${e.y*S}" x2="${h.x*S}" y2="${h.y*S}" stroke="${c}" stroke-width="2.5"/>`});
+  st.hospitals.forEach(h=>{const x=h.x*S,y=h.y*S;
+    s+=`<g opacity="${h.open?1:.45}"><rect x="${x-13}" y="${y-13}" width="26" height="26" rx="4" fill="#fff" stroke="#14212B" stroke-width="1.5"/>
+      <path d="M${x-2.5} ${y-8}h5v5.5h5.5v5h-5.5v5.5h-5v-5.5h-5.5v-5h5.5z" fill="#14212B"/>
+      <text x="${x}" y="${y+27}" text-anchor="middle" font-size="11" font-weight="600" fill="#14212B">${esc(h.name)}</text></g>`});
+  st.emergencies.forEach(e=>{const x=e.x*S,y=e.y*S,c=PC[e.priority];
+    s+=`<polygon points="${x},${y-12} ${x+12},${y} ${x},${y+12} ${x-12},${y}" fill="${c}" stroke="#fff" stroke-width="1.5"/>
+      <text x="${x}" y="${y+4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${e.id}</text>`});
+  st.ambulances.forEach(a=>{const x=a.x*S,y=a.y*S;
+    s+=`<g opacity="${a.available?1:.45}"><circle cx="${x}" cy="${y}" r="11" fill="${a.available?'#14212B':'#7C8C96'}" stroke="#fff" stroke-width="1.5"/>
+      <text x="${x}" y="${y+4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${a.id}</text></g>`});
+  $('#map').innerHTML=s;
+}
+call('state');
+setInterval(()=>{if(!$('#dlg').open)call('state')},5000);
+</script>
+</body>
+</html>
