@@ -19,7 +19,7 @@ Requirements: Java 8 or newer.
     java -jar target/mediroute.jar
 
 Open http://localhost:8080. Windows: double-click `run.bat`. Change the port with `PORT`.
-**Set an admin password before sharing the server:** `$env:ADMIN_PASSWORD="your-password"` (PowerShell) first.
+**Set an admin password before sharing the server:** `$env:ADMIN_PASSWORD="Admin123"` (PowerShell) first.
 Rebuild with `mvn package`, or `javac -d out src\main\java\com\mediroute\*.java` and copy `src\main\resources\static` into `out`.
 
 ## Roles
@@ -36,7 +36,7 @@ Public sign-up is open and always creates a Public account. Staff accounts are c
 ## Demo accounts (change or delete before real use)
 | Username | Password | Role |
 |---|---|---|
-| admin | admin123 (or `ADMIN_PASSWORD`) | Administrator |
+| admin | Admin123 (or `ADMIN_PASSWORD`) | Administrator |
 | dispatcher1 | dispatch123 | Dispatcher |
 | driver1 / driver2 | driver123 | Crew of A1 / A2 |
 | hospital1 | hospital123 | Hospital desk (H1) |
