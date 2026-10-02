@@ -7,35 +7,48 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%2314212B'/><path d='M6.5 3h3v3.5H13v3H9.5V13h-3V9.5H3v-3h3.5z' fill='white'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-:root{--ink:#14212B;--muted:#586973;--line:#C9D4DA;--mist:#E8EDF0;--sea:#DCE5E9;--crit:#C62828;--ser:#D96B00;--mod:#0F7C8A;--min:#6B7A85}
+:root{--ink:#14212B;--muted:#586973;--line:#C9D4DA;--mist:#E8EDF0;--crit:#C62828;--ser:#D96B00;--mod:#0F7C8A;--min:#6B7A85}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{font:14px/1.45 "Public Sans",system-ui,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--mist);font-variant-numeric:tabular-nums}
 button,input,select{font:inherit;color:inherit}
-header{height:52px;display:flex;align-items:center;gap:28px;padding:0 20px;background:var(--ink);color:#fff}
+[hidden]{display:none!important}
+header{height:52px;display:flex;align-items:center;gap:22px;padding:0 20px;background:var(--ink);color:#fff}
 header h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.2px}
 header .stats{display:flex;gap:22px;color:#B7C5CD;font-size:13px}
 header .stats b{color:#fff;font-weight:600;margin-right:4px}
 header .grow{flex:1}
-.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:4px;padding:7px 14px;font-weight:600;cursor:pointer}
-header .btn{background:#fff;color:var(--ink);border-color:#fff}
+header .who{font-size:13px;color:#B7C5CD;text-align:right;line-height:1.2}
+header .who b{color:#fff;display:block;font-weight:600}
+.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:4px;padding:7px 14px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
 .btn.ghost{background:transparent;color:var(--ink)}
+header .btn{background:#fff;color:var(--ink);border-color:#fff}
+header .btn.ghost{background:transparent;color:#fff;border-color:#4A5B66}
 .btn.sm{padding:2px 9px;font-weight:500;font-size:13px}
+.btn.full{width:100%;text-align:center}
 main{height:calc(100% - 52px);display:grid;grid-template-columns:350px 1fr 320px}
 section{overflow:auto;min-height:0}
 .queue{border-right:1px solid var(--line);background:#F6F8F9}
 .side{border-left:1px solid var(--line);background:#F6F8F9}
 h2{font-size:15px;font-weight:600;margin:0;padding:14px 16px 8px}
 .call{display:grid;grid-template-columns:5px 1fr auto;gap:0 12px;padding:11px 14px 11px 0;border-bottom:1px solid var(--line)}
-.call .bar{grid-row:1/4}
+.call .bar{grid-row:1/5}
 .call .who{font-weight:600}
 .call .meta{color:var(--muted);font-size:13px}
 .call .plan{grid-column:2/4;font-size:13px;margin-top:3px}
 .call .plan.bad{color:var(--crit);font-weight:500}
-.empty{padding:18px 16px;color:var(--muted)}
+.call .links{grid-column:2/4;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.empty{padding:14px 16px;color:var(--muted)}
 .mapwrap{display:flex;flex-direction:column;min-width:0}
-.mapwrap svg{width:100%;height:auto;display:block;cursor:crosshair;max-height:calc(100% - 60px)}
+#map{flex:1;min-height:300px;background:#DCE5E9}
+.pin{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font:700 10px "Public Sans",Arial,sans-serif;color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.pin.amb{border-radius:50%;background:var(--ink)}
+.pin.amb.off{background:#7C8C96}
+.pin.call{border-radius:4px}
+.pin.hosp{border-radius:4px;background:#fff;color:var(--ink);border:2px solid var(--ink);font-size:13px}
+.pin.me{border-radius:50%;background:#1E6BD6}
 .legend{display:flex;gap:18px;flex-wrap:wrap;padding:10px 16px;color:var(--muted);font-size:13px;align-items:center}
 .legend i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
 .row{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line)}
@@ -51,44 +64,79 @@ h2{font-size:15px;font-weight:600;margin:0;padding:14px 16px 8px}
 .sw input:focus-visible+span,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1E6BD6;outline-offset:2px}
 .log{padding:0 16px 16px;font-size:13px;color:var(--muted)}
 .log div{padding:3px 0}.log b{font-weight:500;color:var(--ink);margin-right:8px}
+.pform{padding:4px 16px 14px;display:grid;gap:10px}
+.note{padding:0 16px 10px;color:var(--muted);font-size:13px}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13px}
+.chk input{margin-top:3px}
+label.f{display:grid;gap:4px;font-weight:500}
+label.f input,label.f select{padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:#fff;font-weight:400;width:100%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 dialog{border:0;border-radius:6px;padding:0;width:min(400px,92vw);box-shadow:0 12px 40px rgba(20,33,43,.35)}
 dialog::backdrop{background:rgba(20,33,43,.45)}
 dialog form{padding:20px;display:grid;gap:12px}
 dialog h3{margin:0;font-size:17px}
-label.f{display:grid;gap:4px;font-weight:500}
-label.f input,label.f select{padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:#fff;font-weight:400}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
-@media(max-width:1100px){body{height:auto}main{height:auto;grid-template-columns:1fr}section{overflow:visible}.queue,.side{border:0}header .stats{display:none}}
+#auth{min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--ink)}
+.card{background:#fff;border-radius:8px;width:min(380px,100%);padding:28px;display:grid;gap:14px}
+.card h1{margin:0;font-size:22px}
+.card .tag{color:var(--muted);margin:-8px 0 0}
+.tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:8px;font-weight:600;color:var(--muted);cursor:pointer}
+.tabs button.on{color:var(--ink);border-color:var(--ink)}
+.err{color:var(--crit);font-size:13px;min-height:18px}
+@media(max-width:1100px){body{height:auto}main{height:auto;grid-template-columns:1fr}section{overflow:visible}.queue,.side{border:0}header .stats{display:none}#map{height:60vh;flex:none}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
+
+<div id="auth" hidden>
+  <div class="card">
+    <h1>MediRoute</h1>
+    <p class="tag">Emergency ambulance dispatch</p>
+    <div class="tabs"><button id="tabIn" class="on" type="button">Sign in</button><button id="tabUp" type="button">Create account</button></div>
+    <form id="loginForm" class="pform" style="padding:0">
+      <label class="f">Username<input name="username" autocomplete="username" required></label>
+      <label class="f">Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn full">Sign in</button>
+    </form>
+    <form id="regForm" class="pform" style="padding:0" hidden>
+      <label class="f">Your name<input name="display" autocomplete="name" required maxlength="40"></label>
+      <label class="f">Username<input name="username" autocomplete="username" required minlength="3" maxlength="24"></label>
+      <label class="f">Password (6+ characters)<input name="password" type="password" autocomplete="new-password" required minlength="6"></label>
+      <button class="btn full">Create account</button>
+      <div class="sub" style="color:var(--muted);font-size:13px">Public accounts can request an ambulance and track their own requests. Staff accounts are created by an administrator.</div>
+    </form>
+    <div class="err" id="authMsg" role="alert"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
 <header>
   <h1>MediRoute</h1>
   <div class="stats" id="stats"></div>
   <div class="grow"></div>
-  <button class="btn ghost" style="color:#fff;border-color:#4A5B66" onclick="call('reset','POST')">Reset shift</button>
-  <button class="btn" onclick="openDlg()">Add call</button>
+  <span id="staffBtns" hidden>
+    <button class="btn ghost" id="locateBtn" type="button">Locate me</button>
+    <button class="btn ghost" id="hospBtn" type="button" hidden>Load hospitals here</button>
+    <button class="btn ghost" id="resetBtn" type="button" hidden>Reset</button>
+    <button class="btn" id="addBtn" type="button">Add call</button>
+  </span>
+  <div class="who"><b id="whoName"></b><span id="whoRole"></span></div>
+  <button class="btn ghost" id="logoutBtn" type="button">Sign out</button>
 </header>
 <main>
-  <section class="queue"><h2>Calls</h2><div id="calls"></div></section>
+  <section class="queue" id="left"></section>
   <section class="mapwrap">
-    <svg id="map" viewBox="0 0 720 480" role="img" aria-label="City map with ambulances, hospitals and calls"></svg>
-    <div class="legend">
-      <span><i style="background:var(--crit)"></i>Critical</span><span><i style="background:var(--ser)"></i>Serious</span>
-      <span><i style="background:var(--mod)"></i>Moderate</span><span><i style="background:var(--min)"></i>Minor</span>
-      <span>Dashed: ambulance to patient</span><span>Solid: patient to hospital</span><span>Click the map to place a call</span>
-    </div>
+    <div id="map" role="application" aria-label="Map"></div>
+    <div class="legend" id="legend"></div>
   </section>
-  <section class="side">
-    <h2>Ambulances</h2><div id="fleet"></div>
-    <h2>Hospitals</h2><div id="hosp"></div>
-    <h2>Activity</h2><div class="log" id="log"></div>
-  </section>
+  <section class="side" id="right"></section>
 </main>
-<dialog id="dlg">
-  <form id="frm">
+</div>
+
+<dialog id="callDlg">
+  <form id="callFrm">
     <h3>Add call</h3>
     <label class="f">Patient name<input name="patient" placeholder="Name or description" autocomplete="off"></label>
     <div class="two">
@@ -96,87 +144,323 @@ label.f input,label.f select{padding:7px 9px;border:1px solid var(--line);border
       <label class="f">Priority<select name="priority"><option value="CRITICAL">Critical</option><option value="SERIOUS">Serious</option><option value="MODERATE" selected>Moderate</option><option value="MINOR">Minor</option></select></label>
     </div>
     <div class="two">
-      <label class="f">Location x (km)<input name="x" type="number" min="0" max="24" step="0.1" value="12"></label>
-      <label class="f">Location y (km)<input name="y" type="number" min="0" max="16" step="0.1" value="8"></label>
+      <label class="f">Latitude<input name="lat" type="number" step="any" required></label>
+      <label class="f">Longitude<input name="lon" type="number" step="any" required></label>
     </div>
-    <div class="actions"><button type="button" class="btn ghost" onclick="dlg.close()">Cancel</button><button class="btn">Add call</button></div>
+    <div class="actions"><button type="button" class="btn ghost" data-close="callDlg">Cancel</button><button class="btn">Add call</button></div>
   </form>
 </dialog>
+
+<dialog id="userDlg">
+  <form id="userFrm">
+    <h3>Add user</h3>
+    <label class="f">Display name<input name="display" maxlength="40" required></label>
+    <label class="f">Username<input name="username" minlength="3" maxlength="24" required autocomplete="off"></label>
+    <label class="f">Password (6+ characters)<input name="password" type="password" minlength="6" required autocomplete="new-password"></label>
+    <div class="two">
+      <label class="f">Role<select name="role" id="roleSel"><option value="DISPATCHER">Dispatcher</option><option value="DRIVER">Ambulance crew</option><option value="HOSPITAL">Hospital desk</option><option value="ADMIN">Administrator</option><option value="PUBLIC">Public</option></select></label>
+      <label class="f">Linked to<select name="link" id="linkSel" disabled></select></label>
+    </div>
+    <div class="err" id="userMsg" role="alert"></div>
+    <div class="actions"><button type="button" class="btn ghost" data-close="userDlg">Cancel</button><button class="btn">Create user</button></div>
+  </form>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-const $=s=>document.querySelector(s), S=30;
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PC={CRITICAL:'#C62828',SERIOUS:'#D96B00',MODERATE:'#0F7C8A',MINOR:'#6B7A85'};
+const ROLE={ADMIN:'Administrator',DISPATCHER:'Dispatcher',DRIVER:'Ambulance crew',HOSPITAL:'Hospital desk',PUBLIC:'Public'};
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
 const cap=s=>s[0]+s.slice(1).toLowerCase();
 const m1=v=>(+v).toFixed(1);
-let st=null;
+const byId=a=>Object.fromEntries(a.map(x=>[x.id,x]));
+let me=null,st=null,map=null,layer=null,lastCenter='',reqLoc=null,reqMarker=null,watchId=null,gpsOn=false,lastSent=0,timer=null;
+const isStaff=()=>me&&(me.role==='ADMIN'||me.role==='DISPATCHER');
 
-async function call(path,method='GET',body){
-  const r=await fetch('/api/'+path,{method,headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body?new URLSearchParams(body):undefined});
-  const j=await r.json();
-  if(!r.ok){alert(j.error);return}
-  st=j;render();
+async function api(path,method='GET',body){
+  const opt={method,headers:{'X-MR':'1','Content-Type':'application/x-www-form-urlencoded'}};
+  if(body)opt.body=new URLSearchParams(body);
+  const r=await fetch('/api/'+path,opt);
+  let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401&&path!=='login'&&path!=='register'){showAuth();throw new Error('auth')}
+  if(!r.ok)throw new Error(j.error||'Request failed');
+  return j;
 }
-function openDlg(x,y){
-  const f=$('#frm');
-  f.x.value=x??(1+Math.random()*22).toFixed(1); f.y.value=y??(1+Math.random()*14).toFixed(1);
-  f.patient.value='';$('#dlg').showModal();f.patient.focus();
+async function act(path,method,body){
+  try{st=await api(path,method,body);render()}catch(e){if(e.message!=='auth')alert(e.message)}
 }
-$('#frm').addEventListener('submit',e=>{e.preventDefault();call('emergencies','POST',Object.fromEntries(new FormData(e.target)));$('#dlg').close()});
-$('#map').addEventListener('click',e=>{
-  const r=e.currentTarget.getBoundingClientRect();
-  openDlg(((e.clientX-r.left)/r.width*24).toFixed(1),((e.clientY-r.top)/r.height*16).toFixed(1));
-});
 
+/* ---------- sign in / out ---------- */
+function showAuth(){
+  me=null;st=null;toggleGps(false);gpsOn=false;clearInterval(timer);reqLoc=null;if(map&&reqMarker){map.removeLayer(reqMarker);reqMarker=null}
+  $('#app').hidden=true;$('#auth').hidden=false;$('#authMsg').textContent='';
+}
+function tab(up){
+  $('#loginForm').hidden=up;$('#regForm').hidden=!up;
+  $('#tabIn').classList.toggle('on',!up);$('#tabUp').classList.toggle('on',up);$('#authMsg').textContent='';
+}
+$('#tabIn').onclick=()=>tab(false);$('#tabUp').onclick=()=>tab(true);
+for(const [id,path] of [['#loginForm','login'],['#regForm','register']]){
+  $(id).addEventListener('submit',async e=>{
+    e.preventDefault();
+    try{await api(path,'POST',Object.fromEntries(new FormData(e.target)));e.target.reset();await start()}
+    catch(err){$('#authMsg').textContent=err.message}
+  });
+}
+$('#logoutBtn').onclick=async()=>{try{await api('logout','POST')}catch(e){}showAuth()};
+
+async function start(){
+  st=await api('state');me=st.me;
+  $('#auth').hidden=true;$('#app').hidden=false;
+  $('#whoName').textContent=me.display;$('#whoRole').textContent=ROLE[me.role];
+  $('#staffBtns').hidden=!isStaff();
+  $('#hospBtn').hidden=me.role!=='ADMIN';$('#resetBtn').hidden=me.role!=='ADMIN';
+  initMap();initPanels();render();
+  if(me.role==='ADMIN')loadUsers();
+  clearInterval(timer);timer=setInterval(poll,4000);
+}
+async function poll(){
+  if(!me)return;
+  try{st=await api('state');render()}catch(e){}
+}
+
+/* ---------- map (Leaflet + OpenStreetMap) ---------- */
+function initMap(){
+  if(map){setTimeout(()=>map.invalidateSize(),50);return}
+  if(typeof L==='undefined'){$('#map').innerHTML='<div class="empty">The map could not load. Check your internet connection and reload.</div>';return}
+  map=L.map('map').setView([st.center.lat,st.center.lon],13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+  layer=L.layerGroup().addTo(map);
+  map.on('click',ev=>{
+    if(me.role==='PUBLIC')setReq(ev.latlng.lat,ev.latlng.lng);
+    else if(isStaff())openCall(ev.latlng.lat,ev.latlng.lng);
+  });
+  lastCenter=st.center.lat+','+st.center.lon;
+}
+function pin(cls,text,style){return L.divIcon({className:'',html:`<div class="pin ${cls}" style="${style||''}">${text}</div>`,iconSize:[26,26],iconAnchor:[13,13]})}
+function drawMap(){
+  if(!map)return;
+  const key=st.center.lat+','+st.center.lon;
+  if(key!==lastCenter){lastCenter=key;map.setView([st.center.lat,st.center.lon],13)}
+  layer.clearLayers();
+  const A=byId(st.ambulances),H=byId(st.hospitals);
+  st.emergencies.forEach(e=>{
+    const a=e.assignment;if(!a)return;const am=A[a.ambulanceId],h=H[a.hospitalId];if(!am||!h)return;
+    L.polyline([[am.lat,am.lon],[e.lat,e.lon]],{color:PC[e.priority],weight:3,dashArray:'6 6'}).addTo(layer);
+    L.polyline([[e.lat,e.lon],[h.lat,h.lon]],{color:PC[e.priority],weight:3.5}).addTo(layer);
+  });
+  st.hospitals.forEach(h=>L.marker([h.lat,h.lon],{icon:pin('hosp','H'),opacity:h.open?1:.5}).bindTooltip(esc(h.name)).addTo(layer));
+  st.emergencies.forEach(e=>L.marker([e.lat,e.lon],{icon:pin('call',e.id,'background:'+PC[e.priority])}).bindTooltip(esc(e.patient)).addTo(layer));
+  st.ambulances.forEach(a=>L.marker([a.lat,a.lon],{icon:pin('amb'+(a.available?'':' off'),a.id)}).bindTooltip(a.id+' '+a.level).addTo(layer));
+}
+
+/* ---------- panels per role ---------- */
+function initPanels(){
+  const L_=$('#left'),R=$('#right');
+  const legend='<span><i style="background:var(--crit)"></i>Critical</span><span><i style="background:var(--ser)"></i>Serious</span><span><i style="background:var(--mod)"></i>Moderate</span><span><i style="background:var(--min)"></i>Minor</span><span>Dashed: ambulance to patient</span><span>Solid: patient to hospital</span><span>Map data &copy; OpenStreetMap</span>';
+  $('#legend').innerHTML=legend+(isStaff()?'<span>Click the map to place a call</span>':'');
+  if(isStaff()){
+    L_.innerHTML='<h2>Calls</h2><div id="calls"></div>';
+    R.innerHTML='<h2>Ambulances</h2><div id="fleet"></div>'
+      +(me.role==='ADMIN'?'<div class="pform"><div class="two"><select id="newLevel" aria-label="Equipment level"><option value="BLS">BLS (basic)</option><option value="ALS" selected>ALS (advanced)</option><option value="ICU">ICU (intensive)</option></select><button class="btn" type="button" id="addAmbBtn">Add ambulance</button></div></div>':'')
+      +'<h2>Hospitals</h2><div id="hosp"></div><h2>Activity</h2><div class="log" id="log"></div>'
+      +(me.role==='ADMIN'?'<h2>Users</h2><div id="users"></div><div style="padding:10px 16px 20px"><button class="btn full" type="button" id="addUserBtn">Add user</button></div>':'');
+    if(me.role==='ADMIN'){$('#addUserBtn').onclick=openUser;$('#addAmbBtn').onclick=()=>act('ambulances','POST',{level:$('#newLevel').value})}
+  }else if(me.role==='DRIVER'){
+    L_.innerHTML='<h2>My assignment</h2><div id="calls"></div>';
+    R.innerHTML='<h2>My ambulance</h2><div id="fleet"></div><h2>Hospitals</h2><div id="hosp"></div>';
+  }else if(me.role==='HOSPITAL'){
+    L_.innerHTML='<h2>Incoming patients</h2><div id="calls"></div>';
+    R.innerHTML='<h2>My hospital</h2><div id="hosp"></div>';
+  }else{
+    L_.innerHTML=`<h2>Request an ambulance</h2>
+    <form id="reqForm" class="pform">
+      <label class="f">Patient name<input name="patient" placeholder="Who needs help?" maxlength="40" autocomplete="off"></label>
+      <label class="f">Condition<select name="kind"><option value="GENERAL">General</option><option value="CARDIAC">Chest pain / cardiac</option><option value="TRAUMA">Injury / trauma</option><option value="STROKE">Stroke symptoms</option><option value="RESPIRATORY">Breathing difficulty</option></select></label>
+      <label class="chk"><input type="checkbox" name="critical" value="yes"><span>Life-threatening (unconscious, not breathing, heavy bleeding)</span></label>
+      <div class="sub" id="locText" style="color:var(--muted);font-size:13px">Tap the map or use your location to say where the patient is.</div>
+      <div class="actions"><button type="button" class="btn ghost" id="locBtn">Use my location</button><button class="btn">Request ambulance</button></div>
+    </form>
+    <div class="note">This is a demo system. In a real emergency call 108 or 112.</div>
+    <h2>My requests</h2><div id="calls"></div>`;
+    R.innerHTML='<h2>Hospitals</h2><div id="hosp"></div>';
+    $('#locBtn').onclick=()=>locate(p=>setReq(p.coords.latitude,p.coords.longitude,true));
+    $('#reqForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      if(!reqLoc){alert('Tap the map or press "Use my location" first.');return}
+      const fd=Object.fromEntries(new FormData(e.target));fd.lat=reqLoc.lat;fd.lon=reqLoc.lon;
+      await act('emergencies','POST',fd);
+      if(!document.querySelector('#reqForm'))return;
+      e.target.reset();
+    });
+  }
+}
 function render(){
-  const hn=id=>st.hospitals.find(h=>h.id===id).name;
-  const sent=st.emergencies.filter(e=>e.assignment).length, free=st.ambulances.filter(a=>a.available&&!a.busyWith).length;
-  $('#stats').innerHTML=`<span><b>${st.emergencies.length}</b>open calls</span><span><b>${sent}</b>dispatched</span><span><b>${free}</b>ambulances free</span>`;
-
-  $('#calls').innerHTML=st.emergencies.length?st.emergencies.map(e=>{
-    const a=e.assignment;
-    const plan=a?`${a.ambulanceId} arrives in ${m1(a.pickupMin)} min, then ${esc(hn(a.hospitalId))} in ${m1(a.hospitalMin)} min`:esc(e.reason);
-    return `<div class="call"><div class="bar" style="background:${PC[e.priority]}"></div>
-      <div><span class="who">${e.id} ${esc(e.patient)}</span><div class="meta">${cap(e.priority)}, ${e.kind.toLowerCase()}, needs ${e.needs} or better</div></div>
-      <button class="btn ghost sm" onclick="call('emergencies/${e.id}','DELETE')">Resolve</button>
-      <div class="plan ${a?'':'bad'}">${plan}</div></div>`}).join(''):'<div class="empty">No open calls. Add one, or click the map.</div>';
-
-  $('#fleet').innerHTML=st.ambulances.map(a=>`<div class="row ${a.available?'':'off'}">
-    <div class="name"><b>${a.id}</b> ${a.level}<div class="sub">${!a.available?'Out of service':a.busyWith?'Assigned to '+a.busyWith:'Free'}</div></div>
-    <label class="sw" title="In service"><input type="checkbox" ${a.available?'checked':''} onchange="call('ambulances/${a.id}/toggle','POST')"><span></span></label></div>`).join('');
-
-  $('#hosp').innerHTML=st.hospitals.map(h=>`<div class="row ${h.open?'':'off'}">
-    <div class="name"><b>${esc(h.name)}</b><div class="sub">${h.open?`${h.beds-h.incoming} of ${h.beds} beds free`:'Closed to arrivals'}</div></div>
-    <button class="btn ghost sm" aria-label="Fewer beds" onclick="call('hospitals/${h.id}/beds','POST',{n:${h.beds-1}})">-</button>
-    <button class="btn ghost sm" aria-label="More beds" onclick="call('hospitals/${h.id}/beds','POST',{n:${h.beds+1}})">+</button>
-    <label class="sw" title="Accepting patients"><input type="checkbox" ${h.open?'checked':''} onchange="call('hospitals/${h.id}/toggle','POST')"><span></span></label></div>`).join('');
-
-  $('#log').innerHTML=st.log.map(l=>`<div><b>${l.t}</b>${esc(l.msg)}</div>`).join('');
+  if(!st)return;
+  if(isStaff()){
+    const sent=st.emergencies.filter(e=>e.assignment).length,free=st.ambulances.filter(a=>a.available&&!a.busyWith).length;
+    $('#stats').innerHTML=`<span><b>${st.emergencies.length}</b>open calls</span><span><b>${sent}</b>dispatched</span><span><b>${free}</b>ambulances free</span>`;
+  }else $('#stats').innerHTML='';
+  renderCalls();renderFleet();renderHosp();
+  const lg=$('#log');if(lg)lg.innerHTML=st.log.map(l=>`<div><b>${l.t}</b>${esc(l.msg)}</div>`).join('');
   drawMap();
 }
-
-function drawMap(){
-  let s=`<rect width="720" height="480" fill="#DCE5E9"/>`;
-  for(let i=1;i<24;i++)s+=`<line x1="${i*S}" y1="0" x2="${i*S}" y2="480" stroke="#fff" stroke-opacity="${i%5?.35:.8}"/>`;
-  for(let i=1;i<16;i++)s+=`<line x1="0" y1="${i*S}" x2="720" y2="${i*S}" stroke="#fff" stroke-opacity="${i%5?.35:.8}"/>`;
-  s+=`<path d="M0 300 C140 250 250 370 400 310 S620 230 720 270" stroke="#BCD2DC" stroke-width="22" fill="none"/>`;
-  const A=Object.fromEntries(st.ambulances.map(a=>[a.id,a])),H=Object.fromEntries(st.hospitals.map(h=>[h.id,h]));
-  st.emergencies.forEach(e=>{const a=e.assignment;if(!a)return;const c=PC[e.priority],am=A[a.ambulanceId],h=H[a.hospitalId];
-    s+=`<line x1="${am.x*S}" y1="${am.y*S}" x2="${e.x*S}" y2="${e.y*S}" stroke="${c}" stroke-width="2" stroke-dasharray="6 5"/>
-        <line x1="${e.x*S}" y1="${e.y*S}" x2="${h.x*S}" y2="${h.y*S}" stroke="${c}" stroke-width="2.5"/>`});
-  st.hospitals.forEach(h=>{const x=h.x*S,y=h.y*S;
-    s+=`<g opacity="${h.open?1:.45}"><rect x="${x-13}" y="${y-13}" width="26" height="26" rx="4" fill="#fff" stroke="#14212B" stroke-width="1.5"/>
-      <path d="M${x-2.5} ${y-8}h5v5.5h5.5v5h-5.5v5.5h-5v-5.5h-5.5v-5h5.5z" fill="#14212B"/>
-      <text x="${x}" y="${y+27}" text-anchor="middle" font-size="11" font-weight="600" fill="#14212B">${esc(h.name)}</text></g>`});
-  st.emergencies.forEach(e=>{const x=e.x*S,y=e.y*S,c=PC[e.priority];
-    s+=`<polygon points="${x},${y-12} ${x+12},${y} ${x},${y+12} ${x-12},${y}" fill="${c}" stroke="#fff" stroke-width="1.5"/>
-      <text x="${x}" y="${y+4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${e.id}</text>`});
-  st.ambulances.forEach(a=>{const x=a.x*S,y=a.y*S;
-    s+=`<g opacity="${a.available?1:.45}"><circle cx="${x}" cy="${y}" r="11" fill="${a.available?'#14212B':'#7C8C96'}" stroke="#fff" stroke-width="1.5"/>
-      <text x="${x}" y="${y+4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${a.id}</text></g>`});
-  $('#map').innerHTML=s;
+function renderCalls(){
+  const box=$('#calls');if(!box)return;
+  const H=byId(st.hospitals);
+  const empty={DRIVER:'No assignment. You are on standby.',HOSPITAL:'No patients are heading to your hospital.',PUBLIC:'You have no open requests.'}[me.role]||'No open calls. Add one, or click the map.';
+  box.innerHTML=st.emergencies.length?st.emergencies.map(e=>{
+    const a=e.assignment,h=a&&H[a.hospitalId];
+    let plan;
+    if(!a)plan=esc(e.reason);
+    else if(me.role==='HOSPITAL')plan=`${a.ambulanceId} arrives in about ${m1(a.pickupMin+a.hospitalMin)} min`;
+    else if(me.role==='PUBLIC')plan=`Ambulance ${a.ambulanceId} is on its way, about ${m1(a.pickupMin)} min away. Destination: ${esc(h?h.name:'')}`;
+    else plan=`${a.ambulanceId} arrives in ${m1(a.pickupMin)} min, then ${esc(h?h.name:'')} in ${m1(a.hospitalMin)} min`;
+    let btn='',links='';
+    if(isStaff())btn=`<button class="btn ghost sm" onclick="act('emergencies/${e.id}','DELETE')">Resolve</button>`;
+    if(me.role==='PUBLIC')btn=`<button class="btn ghost sm" onclick="if(confirm('Cancel this request?'))act('emergencies/${e.id}','DELETE')">Cancel</button>`;
+    if(me.role==='DRIVER'&&a){
+      btn=`<button class="btn sm" onclick="if(confirm('Mark this trip as complete?'))act('emergencies/${e.id}','DELETE')">Complete</button>`;
+      links=`<a class="btn ghost sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${e.lat},${e.lon}">Navigate to patient</a>`
+        +(h?`<a class="btn ghost sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lon}">Navigate to hospital</a>`:'');
+    }
+    return `<div class="call"><div class="bar" style="background:${PC[e.priority]}"></div>
+      <div><span class="who">${e.id} ${esc(e.patient)}</span><div class="meta">${cap(e.priority)}, ${e.kind.toLowerCase()}, needs ${e.needs} or better</div></div>${btn}
+      <div class="plan ${a?'':'bad'}">${plan}</div>${links?`<div class="links">${links}</div>`:''}</div>`}).join(''):`<div class="empty">${empty}</div>`;
 }
-call('state');
-setInterval(()=>{if(!$('#dlg').open)call('state')},5000);
+function renderFleet(){
+  const box=$('#fleet');if(!box)return;
+  if(me.role==='DRIVER'){
+    const a=st.ambulances[0];
+    box.innerHTML=a?`<div class="row ${a.available?'':'off'}"><div class="name"><b>${a.id}</b> ${a.level}<div class="sub">${!a.available?'Off duty':a.busyWith?'Assigned to '+a.busyWith:'On duty, free'}</div></div>
+      <label class="sw" title="On duty"><input type="checkbox" ${a.available?'checked':''} onchange="act('ambulances/${a.id}/toggle','POST')"><span></span></label></div>
+      <div class="row"><div class="name"><b>Share live location</b><div class="sub">Sends your GPS position so dispatch sees you move</div></div>
+      <label class="sw" title="Share location"><input type="checkbox" ${gpsOn?'checked':''} onchange="setGps(this.checked)"><span></span></label></div>`
+      :'<div class="empty">No ambulance is linked to your account. Ask an administrator.</div>';
+    return;
+  }
+  box.innerHTML=st.ambulances.map(a=>`<div class="row ${a.available?'':'off'}">
+    <div class="name"><b>${a.id}</b> ${a.level}<div class="sub">${!a.available?'Out of service':a.busyWith?'Assigned to '+a.busyWith:'Free'}</div></div>
+    ${me.role==='ADMIN'?`<button class="btn ghost sm" aria-label="Remove ${a.id}" onclick="if(confirm('Remove ${a.id} from the fleet?'))act('ambulances/${a.id}','DELETE')">Remove</button>`:''}
+    <label class="sw" title="In service"><input type="checkbox" ${a.available?'checked':''} onchange="act('ambulances/${a.id}/toggle','POST')"><span></span></label></div>`).join('');
+}
+function renderHosp(){
+  const box=$('#hosp');if(!box)return;
+  if(me.role==='HOSPITAL'){
+    const h=st.hospitals.find(x=>x.id===me.link);
+    box.innerHTML=h?`<div class="row ${h.open?'':'off'}"><div class="name"><b>${esc(h.name)}</b><div class="sub">${h.open?`${h.beds-h.incoming} of ${h.capacity} beds free, ${h.incoming} incoming`:'Closed to arrivals'}</div></div>
+      <button class="btn ghost sm" aria-label="Fewer beds" onclick="act('hospitals/${h.id}/beds','POST',{n:${h.beds-1}})">-</button>
+      <button class="btn ghost sm" aria-label="More beds" onclick="act('hospitals/${h.id}/beds','POST',{n:${h.beds+1}})">+</button>
+      <label class="sw" title="Accepting patients"><input type="checkbox" ${h.open?'checked':''} onchange="act('hospitals/${h.id}/toggle','POST')"><span></span></label></div>`
+      :'<div class="empty">No hospital is linked to your account. Ask an administrator.</div>';
+    return;
+  }
+  box.innerHTML=st.hospitals.map(h=>isStaff()?`<div class="row ${h.open?'':'off'}">
+    <div class="name"><b>${esc(h.name)}</b><div class="sub">${h.open?`${h.beds-h.incoming} of ${h.capacity} beds free`:'Closed to arrivals'}</div></div>
+    <button class="btn ghost sm" aria-label="Fewer beds" onclick="act('hospitals/${h.id}/beds','POST',{n:${h.beds-1}})">-</button>
+    <button class="btn ghost sm" aria-label="More beds" onclick="act('hospitals/${h.id}/beds','POST',{n:${h.beds+1}})">+</button>
+    <label class="sw" title="Accepting patients"><input type="checkbox" ${h.open?'checked':''} onchange="act('hospitals/${h.id}/toggle','POST')"><span></span></label></div>`
+    :`<div class="row ${h.open?'':'off'}"><div class="name"><b>${esc(h.name)}</b><div class="sub">${h.open?'Accepting patients':'Closed to arrivals'}</div></div></div>`).join('');
+}
+
+/* ---------- dialogs ---------- */
+document.addEventListener('click',e=>{const c=e.target.closest('[data-close]');if(c)$('#'+c.dataset.close).close()});
+function openCall(lat,lon){
+  const f=$('#callFrm');
+  f.lat.value=(+lat).toFixed(5);f.lon.value=(+lon).toFixed(5);f.patient.value='';
+  $('#callDlg').showModal();f.patient.focus();
+}
+$('#addBtn').onclick=()=>{const c=map?map.getCenter():{lat:st.center.lat,lng:st.center.lon};openCall(c.lat,c.lng)};
+$('#callFrm').addEventListener('submit',e=>{e.preventDefault();act('emergencies','POST',Object.fromEntries(new FormData(e.target)));$('#callDlg').close()});
+$('#resetBtn').onclick=()=>{if(confirm('Reset all calls, ambulances and hospitals to the demo data?'))act('reset','POST')};
+$('#locateBtn').onclick=()=>locate(p=>{if(map)map.setView([p.coords.latitude,p.coords.longitude],14)});
+
+/* ---------- users (admin) ---------- */
+async function loadUsers(){
+  try{
+    const j=await api('users');const box=$('#users');if(!box)return;
+    box.innerHTML=j.users.map(u=>`<div class="row"><div class="name"><b>${esc(u.username)}</b><div class="sub">${ROLE[u.role]}${u.link?' ('+esc(u.link)+')':''}</div></div>
+      ${u.username.toLowerCase()===me.username.toLowerCase()?'':`<button class="btn ghost sm" data-del="${esc(u.username)}">Delete</button>`}</div>`).join('');
+    box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+      if(!confirm('Delete user '+b.dataset.del+'?'))return;
+      try{await api('users/'+encodeURIComponent(b.dataset.del),'DELETE');loadUsers()}catch(e){alert(e.message)}
+    });
+  }catch(e){}
+}
+function fillLinks(){
+  const r=$('#roleSel').value,s=$('#linkSel');
+  if(r==='DRIVER'){s.disabled=false;s.innerHTML=st.ambulances.map(a=>`<option value="${a.id}">${a.id} (${a.level})</option>`).join('')}
+  else if(r==='HOSPITAL'){s.disabled=false;s.innerHTML=st.hospitals.map(h=>`<option value="${h.id}">${h.id} ${esc(h.name)}</option>`).join('')}
+  else{s.disabled=true;s.innerHTML='<option value="">Not needed</option>'}
+}
+$('#roleSel').onchange=fillLinks;
+function openUser(){$('#userFrm').reset();$('#userMsg').textContent='';fillLinks();$('#userDlg').showModal()}
+$('#userFrm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  try{await api('users','POST',Object.fromEntries(new FormData(e.target)));$('#userDlg').close();loadUsers()}
+  catch(err){$('#userMsg').textContent=err.message}
+});
+
+/* ---------- location helpers ---------- */
+function locate(cb){
+  if(!navigator.geolocation){alert('Location is not available in this browser.');return}
+  navigator.geolocation.getCurrentPosition(cb,err=>alert('Could not read your location: '+err.message),{enableHighAccuracy:true,timeout:10000});
+}
+function setReq(lat,lon,pan){
+  reqLoc={lat:lat,lon:lon};
+  $('#locText').textContent='Location set: '+lat.toFixed(5)+', '+lon.toFixed(5);
+  if(map){
+    if(reqMarker)map.removeLayer(reqMarker);
+    reqMarker=L.marker([lat,lon],{icon:pin('me','You')}).addTo(map);
+    if(pan)map.setView([lat,lon],15);
+  }
+}
+function setGps(on){gpsOn=on;toggleGps(on)}
+function toggleGps(on){
+  if(!on){if(watchId!=null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId);watchId=null;return}
+  if(!navigator.geolocation){alert('Location is not available in this browser.');gpsOn=false;render();return}
+  watchId=navigator.geolocation.watchPosition(p=>{
+    const now=Date.now();if(now-lastSent<4000||!me||!me.link)return;lastSent=now;
+    api('ambulances/'+me.link+'/location','POST',{lat:p.coords.latitude,lon:p.coords.longitude}).catch(()=>{});
+  },err=>{alert('Could not read your location: '+err.message);toggleGps(false);gpsOn=false;render()},{enableHighAccuracy:true,maximumAge:3000});
+}
+
+/* ---------- real hospitals from OpenStreetMap (admin) ---------- */
+$('#hospBtn').onclick=async()=>{
+  if(!map)return;
+  const btn=$('#hospBtn'),old=btn.textContent;btn.textContent='Searching...';btn.disabled=true;
+  try{
+    const c=map.getCenter(),r=Math.min(12000,Math.max(2000,Math.round(c.distanceTo(map.getBounds().getNorthEast()))));
+    const around=`(around:${r},${c.lat},${c.lng})`;
+    const q=`[out:json][timeout:25];(node["amenity"="hospital"]${around};way["amenity"="hospital"]${around};relation["amenity"="hospital"]${around};);out center tags;`;
+    let data=null;
+    for(const url of OVERPASS){
+      try{
+        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
+        if(res.ok){data=await res.json();break}
+      }catch(e){}
+    }
+    if(!data){alert('Could not reach the OpenStreetMap hospital service. Check your internet connection and try again.');return}
+    const seen={},list=[];
+    data.elements.forEach(el=>{
+      const t=el.tags||{};
+      const name=(t.name||t['name:en']||'').replace(/[|\r\n]/g,' ').trim();
+      const la=el.lat!==undefined?el.lat:(el.center?el.center.lat:undefined),lo=el.lon!==undefined?el.lon:(el.center?el.center.lon:undefined);
+      if(!name||la===undefined||lo===undefined||t.emergency==='no'||seen[name.toLowerCase()])return;
+      seen[name.toLowerCase()]=1;list.push({name:name,lat:la,lon:lo,d:c.distanceTo(L.latLng(la,lo))});
+    });
+    list.sort((a,b)=>a.d-b.d);
+    const top=list.slice(0,40);
+    if(!top.length){alert('No named hospitals found in this map view. Zoom out or move the map and try again.');return}
+    if(!confirm(`Found ${top.length} hospitals. Replace the current hospitals, calls and ambulance positions with these?`))return;
+    await act('region','POST',{lat:c.lat,lon:c.lng,hospitals:top.map(h=>h.name+'|'+h.lat+'|'+h.lon).join('\n')});
+  }finally{btn.textContent=old;btn.disabled=false}
+};
+
+/* ---------- boot ---------- */
+(async()=>{try{await start()}catch(e){showAuth()}})();
 </script>
 </body>
 </html>

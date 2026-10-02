@@ -10,7 +10,12 @@ public class Allocator {
     }
     static final double BIG = 1e5;
 
-    static double dist(double ax, double ay, double bx, double by) { return Math.hypot(ax - bx, ay - by); }
+    /** Great-circle (straight-line) distance in km. */
+    static double dist(double la1, double lo1, double la2, double lo2) {
+        double p1 = Math.toRadians(la1), p2 = Math.toRadians(la2), dp = p2 - p1, dl = Math.toRadians(lo2 - lo1);
+        double a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+        return 2 * 6371.0 * Math.asin(Math.min(1, Math.sqrt(a)));
+    }
 
     /** Minimum ambulance equipment level a call needs. */
     public static Level required(Emergency e) {
@@ -39,7 +44,7 @@ public class Allocator {
                 Hospital best = null; double bd = Double.MAX_VALUE;
                 for (Hospital h : hosps) {
                     if (!h.open || beds.getOrDefault(h.id, 0) <= 0 || !h.services.contains(e.kind)) continue;
-                    double d = dist(e.x, e.y, h.x, h.y);
+                    double d = dist(e.lat, e.lon, h.lat, h.lon);
                     if (d < bd) { bd = d; best = h; }
                 }
                 if (best == null) plan.unassigned.put(e.id, "No open hospital with a free bed for " + e.kind.name().toLowerCase() + " cases");
@@ -52,12 +57,12 @@ public class Allocator {
             double[][] c = new double[k][k];
             for (int i = 0; i < n; i++) {
                 Emergency e = cand.get(i); Hospital h = pick.get(e.id);
-                double hd = dist(e.x, e.y, h.x, h.y); int need = required(e).ordinal();
+                double hd = dist(e.lat, e.lon, h.lat, h.lon); int need = required(e).ordinal();
                 for (int j = 0; j < k; j++) {
                     if (j >= m) { c[i][j] = BIG; continue; }
                     Ambulance a = pool.get(j);
                     c[i][j] = a.level.ordinal() < need ? BIG
-                            : dist(a.x, a.y, e.x, e.y) + 0.25 * hd + 0.5 * (a.level.ordinal() - need);
+                            : dist(a.lat, a.lon, e.lat, e.lon) + 0.25 * hd + 0.5 * (a.level.ordinal() - need);
                 }
             }
             int[] match = hungarian(c);
@@ -68,7 +73,7 @@ public class Allocator {
                     Ambulance a = pool.get(j); used.add(a);
                     Assignment as = new Assignment();
                     as.emergencyId = e.id; as.ambulanceId = a.id; as.hospitalId = h.id;
-                    as.pickupKm = dist(a.x, a.y, e.x, e.y); as.hospitalKm = dist(e.x, e.y, h.x, h.y);
+                    as.pickupKm = dist(a.lat, a.lon, e.lat, e.lon); as.hospitalKm = dist(e.lat, e.lon, h.lat, h.lon);
                     plan.assigned.add(as);
                 } else {
                     beds.merge(h.id, 1, Integer::sum);
